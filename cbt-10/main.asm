@@ -163,6 +163,7 @@ buz_ticks:	.byte 1 ; number of periods to buzz
 ;-----------------interrupts funcitons--------------------
 
 buzz_beep:
+	nop
 	reti
 
 ;---------------------------------------------------------
