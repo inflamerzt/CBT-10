@@ -4,6 +4,14 @@
 .equ	B	= 80			; порог для ускорения счета
 .equ	C	= 615			; K для счетчика ((кол.сек для накопления имп.,кол.которых равно фону в мкр/ч)*100)
 
+/* additional definitions */
+.equ LEDPORT = PORTB; LED PORT
+.equ LEDPIN = PB6; LED PIN, high inactive
+.equ BUZZPORT = PORTB; BUZZER PORT
+.equ BUZZPIN = PB7; BUZZER PIN
+
+/* end section */
+
 .DSEG
 Timeout_high:	.byte	1
 Timeout_low:	.byte	1
@@ -119,18 +127,12 @@ INT_Shelchok:
 	set							; установить флаг T
 	in		r3, SREG
 	adiw	r26, 1
-	breq	adiw_high_bytes
-	out		SREG, r3
-	reti
-adiw_high_bytes:
+	brne	no_adiw_high_bytes
 	adiw	r28, 1
+no_adiw_high_bytes:
 	out		SREG, r3
 	reti
-/*
-testing section
-*/
 
-//testing section end
 ;---------------------------------------------------------------
 
 Dergati_IRF840:
@@ -264,6 +266,8 @@ ne_plus_1sec:
 	andi	r23, 0b10111111		; сбросить флаг Т
 	lds		r24, Uroven_Zvuka
 	sts		Schetchik_Zvuka, r24
+
+	/* sound control section */
 ne_Shelchok:
 	lds		r24, Schetchik_Zvuka
 	dec		r24
@@ -281,7 +285,7 @@ ne_Pisk:
 
 	lds		r24, Anim_low
 	lds		r25, Anim_high
-
+	/* end seciton */
 	sbiw	r24, 1
 	brne	ne_time_Anim
 	ldi		r24, low(500)
