@@ -10,6 +10,8 @@
 .equ BUZZPORT = PORTB; BUZZER PORT
 .equ BUZZPIN = PB7; BUZZER PIN
 
+.def TMP = R16;
+
 /* end section */
 
 .DSEG
@@ -257,6 +259,8 @@ ne_plus_1sec:
 	sts		Time2000_low, r24
 	sts		Time2000_high, r25
 
+	/* sound control section */
+
 	lds		r24, Schetchik_Zvuka
 	dec		r24
 	brne	ne_Shelchok
@@ -267,7 +271,7 @@ ne_plus_1sec:
 	lds		r24, Uroven_Zvuka
 	sts		Schetchik_Zvuka, r24
 
-	/* sound control section */
+
 ne_Shelchok:
 	lds		r24, Schetchik_Zvuka
 	dec		r24
@@ -283,9 +287,10 @@ pisk_inv:
 	cbi		PORTB, DDB7			; к земле PISK1
 ne_Pisk:
 
+	/* end seciton */
+
 	lds		r24, Anim_low
 	lds		r25, Anim_high
-	/* end seciton */
 	sbiw	r24, 1
 	brne	ne_time_Anim
 	ldi		r24, low(500)
@@ -332,6 +337,16 @@ reset:
 	out		DDRB, r24
 	ldi		r24, 0b10100111
 	out		DDRD, r24
+
+	/*
+	setup timer 2 for buzzer & led
+	*/
+	push TMP
+	ldi TMP, (1<<LEDPIN) | (1<<BUZZPIN)
+	pop TMP
+
+
+	/* end section */
 
 ;	sbi		DDRD, DDD5			; выход LED
 	ldi		r24, 0
