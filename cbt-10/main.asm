@@ -12,6 +12,32 @@
 
 .def TMP = R16;
 
+;------------------------example--------------------
+;.MACRO SUBI16 ; Start macro definition
+;subi @1,low(@0) ; Subtract low byte
+;sbci @2,high(@0) ; Subtract high byte
+;.ENDMACRO ; End macro definition
+;.CSEG ; Start code segment
+;SUBI16 0x1234,r16,r17 ; Sub.0x1234 from r17:r1
+;---------------------------------------------------
+
+
+.macro start_tim2
+	push TMP
+	ldi TMP, (1<<CS20); | (1<<CS21) | (1<<CS22) ;runing clock /1024
+	sts TCCR2B, TMP
+	pop TMP
+.endmacro
+
+
+.macro stop_tim2
+	;ldi TMP, (1<<CS20); | (1<<CS21) | (1<<CS22) ;runing clock /1024
+	push TMP
+	clr TMP
+	sts TCCR2B, TMP
+	pop TMP
+.endmacro
+
 /* end section */
 
 .DSEG
@@ -78,6 +104,14 @@ MetkaRAID:		.byte	1
 NOP_byte:		.byte	1
 
 
+;------------- New Data variables --------------
+
+
+buz_ticks:	.byte 1 ; number of periods to buzz
+
+
+;-----------------------------------------------
+
 .CSEG
 .ORG $0000
 
@@ -90,7 +124,7 @@ NOP_byte:		.byte	1
 		reti ;rjmp WDT ; Watchdog Timer Handler
 		reti ;rjmp TIM2_COMPA ; Timer2 Compare A Handler
 		reti ;rjmp TIM2_COMPB ; Timer2 Compare B Handler
-		reti ;rjmp TIM2_OVF ; Timer2 Overflow Handler
+	rjmp	buzz_beep			;rjmp TIM2_OVF ; Timer2 Overflow Handler
 		reti ;rjmp TIM1_CAPT ; Timer1 Capture Handler
 		reti ;rjmp TIM1_COMPA ; Timer1 Compare A Handler
 	rjmp	Dergati_IRF840		;rjmp TIM1_COMPB ; Timer1 Compare B Handler
@@ -125,6 +159,13 @@ NOP_byte:		.byte	1
 
 */
 //.ORG $001A
+
+;-----------------interrupts funcitons--------------------
+
+buzz_beep:
+	reti
+
+;---------------------------------------------------------
 INT_Shelchok:
 	set							; установить флаг T
 	in		r3, SREG
@@ -342,7 +383,19 @@ reset:
 	setup timer 2 for buzzer & led
 	*/
 	push TMP
-	ldi TMP, (1<<LEDPIN) | (1<<BUZZPIN)
+	;ldi TMP, (1<<LEDPIN) | (1<<BUZZPIN)
+	in TMP,LEDPORT
+	sbr TMP,LEDPIN
+	out LEDPORT,TMP
+	;sbi LEDPORT,LEDPIN
+	ldi TMP, (1<<OCIE2B) | (1<<OCIE2A) | (1<<TOIE2) ; enable all interrupts TIMER2
+	sts TIMSK2, TMP
+	start_tim2
+	;ldi TMP, (1<<CS20); | (1<<CS21) | (1<<CS22) ;runing clock /1024
+	;sts TCCR2B, TMP
+
+	stop_tim2
+
 	pop TMP
 
 
