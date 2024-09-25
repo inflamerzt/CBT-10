@@ -21,8 +21,25 @@
 ;SUBI16 0x1234,r16,r17 ; Sub.0x1234 from r17:r1
 ;---------------------------------------------------
 
+;decrement from word
+.macro decw ;decw RgL
+SBIW @0,1
+.endmacro
 
-.macro start_tim2
+;stores word to memory
+.macro stsw ; stsw mem_pointer, RgL,RgH 
+	sts @0, @1
+	sts @0+1, @2
+.endmacro
+
+;loads word from memory
+.macro ldsw ; ldsw mem_pointer, RgL,RgH 
+	lds @1, @0
+	lds @2, @0+1
+.endmacro
+
+
+.macro tim2start
 	push TMP
 	ldi TMP, (1<<CS20); | (1<<CS21) | (1<<CS22) ;runing clock /1024
 	sts TCCR2B, TMP
@@ -30,7 +47,7 @@
 .endmacro
 
 
-.macro stop_tim2
+.macro tim2stop
 	;ldi TMP, (1<<CS20); | (1<<CS21) | (1<<CS22) ;runing clock /1024
 	push TMP
 	clr TMP
@@ -107,7 +124,8 @@ NOP_byte:		.byte	1
 ;------------- New Data variables --------------
 
 
-buz_ticks:	.byte 1 ; number of periods to buzz
+buz_tim:	.byte 2 ; number of periods to buzz
+test: .byte 1
 
 
 ;-----------------------------------------------
@@ -122,7 +140,7 @@ buz_ticks:	.byte 1 ; number of periods to buzz
 		reti ;rjmp PCINT1 ; PCINT1 Handler
 		reti ;rjmp PCINT2 ; PCINT2 Handler
 		reti ;rjmp WDT ; Watchdog Timer Handler
-		reti ;rjmp TIM2_COMPA ; Timer2 Compare A Handler
+	rjmp buzz_switch ;rjmp TIM2_COMPA ; Timer2 Compare A Handler
 		reti ;rjmp TIM2_COMPB ; Timer2 Compare B Handler
 	rjmp	buzz_beep			;rjmp TIM2_OVF ; Timer2 Overflow Handler
 		reti ;rjmp TIM1_CAPT ; Timer1 Capture Handler
@@ -163,7 +181,32 @@ buz_ticks:	.byte 1 ; number of periods to buzz
 ;-----------------interrupts funcitons--------------------
 
 buzz_beep:
-	nop
+	push Xl
+	push Xh
+	
+	ldsw buz_tim,Xl,Xh
+	TST Xh
+	brne make_some_noise
+	TST Xl
+	brne make_some_noise
+	;disable signals
+	cbi BUZZPORT,BUZZPIN
+	sbi LEDPORT,LEDPIN
+	tim2stop
+	rjmp exit_buz
+  make_some_noise:
+	sbiw Xl:Xh, 1
+	stsw buz_tim,Xl,Xh
+	sbrs Xh,3 // temporary mute for short beeps
+	sbi BUZZPORT,BUZZPIN
+	;cbi LEDPORT,LEDPIN	
+  exit_buz:
+	pop Xh
+	pop Xl
+	reti
+
+buzz_switch:
+	cbi BUZZPORT,BUZZPIN
 	reti
 
 ;---------------------------------------------------------
@@ -302,7 +345,7 @@ ne_plus_1sec:
 	sts		Time2000_high, r25
 
 	/* sound control section */
-
+/*
 	lds		r24, Schetchik_Zvuka
 	dec		r24
 	brne	ne_Shelchok
@@ -328,7 +371,7 @@ pisk_inv:
 	sbi		PORTB, DDB6			; подтяжка PISK2
 	cbi		PORTB, DDB7			; к земле PISK1
 ne_Pisk:
-
+*/
 	/* end seciton */
 
 	lds		r24, Anim_low
@@ -391,14 +434,25 @@ reset:
 	;sbi LEDPORT,LEDPIN
 	ldi TMP, (1<<OCIE2B) | (1<<OCIE2A) | (1<<TOIE2) ; enable all interrupts TIMER2
 	sts TIMSK2, TMP
-	start_tim2
+	ldi TMP, 128
+	sts OCR2A, TMP
+	
 	;ldi TMP, (1<<CS20); | (1<<CS21) | (1<<CS22) ;runing clock /1024
 	;sts TCCR2B, TMP
 
-	stop_tim2
+	;tim2stop
+
+	ldi r16,low(8000)
+	ldi r17,high(8000)
+
+	stsw buz_tim, r16, r17
+	tim2start
 
 	pop TMP
 
+
+
+	
 
 	/* end section */
 
