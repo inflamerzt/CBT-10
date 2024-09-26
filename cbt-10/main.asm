@@ -41,7 +41,7 @@ SBIW @0,1
 
 .macro tim2start
 	push TMP
-	ldi TMP, (1<<CS21) ;(1<<CS20) | (1<<CS21) | (1<<CS22) ;runing clock /1024
+	ldi TMP, (1<<CS20) ;(1<<CS20) | (1<<CS21) | (1<<CS22) ;runing clock /1024
 	sts TCCR2B, TMP
 	pop TMP
 .endmacro
@@ -140,9 +140,9 @@ test: .byte 1
 		reti ;rjmp PCINT1 ; PCINT1 Handler
 		reti ;rjmp PCINT2 ; PCINT2 Handler
 		reti ;rjmp WDT ; Watchdog Timer Handler
-	rjmp buzz_switch ;rjmp TIM2_COMPA ; Timer2 Compare A Handler
+		reti ;rjmp buzz_switch ;rjmp TIM2_COMPA ; Timer2 Compare A Handler
 		reti ;rjmp TIM2_COMPB ; Timer2 Compare B Handler
-	rjmp	buzz_beep			;rjmp TIM2_OVF ; Timer2 Overflow Handler
+	reti rjmp	buzz_beep			;rjmp TIM2_OVF ; Timer2 Overflow Handler
 		reti ;rjmp TIM1_CAPT ; Timer1 Capture Handler
 		reti ;rjmp TIM1_COMPA ; Timer1 Compare A Handler
 	rjmp	Dergati_IRF840		;rjmp TIM1_COMPB ; Timer1 Compare B Handler
@@ -182,8 +182,22 @@ test: .byte 1
 
 buzz_beep:
 	push Xl
+	lds Xl,buz_tim
+	inc Xl
+	cpi Xl,0x40
+	brne nr_cont
+	clr Xl
+  nr_cont:
+	sbrc Xl,5
+	sbi BUZZPORT,BUZZPIN
+	sbrs Xl,5
+	cbi BUZZPORT,BUZZPIN
+	pop Xl
+	reti
+
+buzz_beep_old:
+	push Xl
 	push Xh
-	
 	ldsw buz_tim,Xl,Xh
 	TST Xh
 	brne make_some_noise
@@ -205,10 +219,12 @@ buzz_beep:
 	pop Xl
 	reti
 
+
+	/*
 buzz_switch:
 	cbi BUZZPORT,BUZZPIN
 	reti
-
+	*/
 ;---------------------------------------------------------
 INT_Shelchok:
 	set							; установить флаг T
