@@ -41,7 +41,7 @@ SBIW @0,1
 
 .macro tim2start
 	push TMP
-	ldi TMP, (1<<CS20); | (1<<CS21) | (1<<CS22) ;runing clock /1024
+	ldi TMP, (1<<CS21) ;(1<<CS20) | (1<<CS21) | (1<<CS22) ;runing clock /1024
 	sts TCCR2B, TMP
 	pop TMP
 .endmacro
@@ -3085,23 +3085,27 @@ SPI_init:
 ; r24-передоваемый байт
 
 SPI_Write_CMD:
+	cli
 	out		SPCR, r0
 	cbi		PORTB,DDB3			; к земле DO
 	sbi		PORTB,DDB5			; подтяжка CLK
 	cbi		PORTB,DDB5			; к земле CLK
 	out		SPCR, r2			; Master Mode(MSTR), Enable SPI(SPE)
 	out		SPDR, r24
+	sei
 	rcall	clk_18
 	in		r24, SPSR
 	ret
 
 SPI_Write_DATA:
+	cli
 	out		SPCR, r0
 	sbi		PORTB,DDB3			; подтяжка DO
 	sbi		PORTB,DDB5			; подтяжка CLK
 	cbi		PORTB,DDB5			; к земле CLK
 	out		SPCR, r2			; Master Mode(MSTR), Enable SPI(SPE)
 	out		SPDR, r24
+	sei
 	rcall	clk_18
 	in		r24, SPSR
 	ret
